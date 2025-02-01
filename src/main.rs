@@ -1,11 +1,13 @@
-use actix_web::{web, App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use log::info;
 
 mod models;
-// mod routes;
-// mod services;
-// mod utils;
+mod routes;
+mod services;
+mod utils;
+
+use services::{BseService, NseService};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -15,17 +17,16 @@ async fn main() -> std::io::Result<()> {
 
     info!("Starting stock market India server...");
 
-    HttpServer::new(|| {
+    // Initialize services
+    let nse_service = web::Data::new(NseService::new());
+    let bse_service = web::Data::new(BseService::new());
+
+    HttpServer::new(move || {
         App::new()
-            .wrap(actix_web::middleware::Logger::default())
-            // Configure routes here
-            .service(
-                web::scope("/api")
-                    // NSE routes
-                    .service(web::scope("/nse"))
-                    // BSE routes
-                    .service(web::scope("/bse")),
-            )
+            .wrap(middleware::Logger::default())
+            .app_data(nse_service.clone())
+            .app_data(bse_service.clone())
+            .configure(routes::configure_routes)
     })
     .bind(("127.0.0.1", 3000))?
     .run()
