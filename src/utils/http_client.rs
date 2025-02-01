@@ -1,5 +1,8 @@
 use crate::models::common::StockError;
-use reqwest::{header::HeaderMap, Client};
+use reqwest::{
+    header::{HeaderMap, HeaderName, HeaderValue},
+    Client,
+};
 use serde::de::DeserializeOwned;
 use std::time::Duration;
 
@@ -76,13 +79,13 @@ impl HttpClient {
     }
 
     /// Convert a slice of header tuples into a HeaderMap
-    pub fn create_headers(headers: &[(&str, &str)]) -> HeaderMap {
-        headers.iter().fold(HeaderMap::new(), |mut map, &(k, v)| {
-            map.insert(
-                k.parse().expect("Invalid header name"),
-                v.parse().expect("Invalid header value"),
-            );
-            map
-        })
+    pub fn create_headers(headers: &[(&'static str, &'static str)]) -> HeaderMap {
+        let mut map = HeaderMap::new();
+        for &(key, value) in headers {
+            if let Ok(header_value) = HeaderValue::from_str(value) {
+                map.insert(HeaderName::from_static(key), header_value);
+            }
+        }
+        map
     }
 }
